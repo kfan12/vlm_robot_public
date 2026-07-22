@@ -65,7 +65,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full node graph.
 
 ```bash
 # 1. Clone (any target directory works)
-git clone -b demo <REPO_URL> vlm_robot_demo
+git clone https://github.com/kfan12/vlm_robot_public.git vlm_robot_demo
 cd vlm_robot_demo
 
 # 2. Install dependencies (ROS 2 Humble, Gazebo Fortress, tmux, OSQP from source)

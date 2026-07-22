@@ -37,7 +37,7 @@ Terminal** (`wt.exe`), which Windows 11 ships by default.
 ## 1. Fast path — the install script
 
 ```bash
-git clone -b demo <REPO_URL> vlm_robot_demo   # any directory name works
+git clone https://github.com/kfan12/vlm_robot_public.git vlm_robot_demo   # any directory name works
 cd vlm_robot_demo
 ./scripts/setup/install_deps.sh
 ```
