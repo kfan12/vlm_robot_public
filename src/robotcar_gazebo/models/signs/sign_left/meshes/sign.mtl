@@ -1,0 +1,16 @@
+newmtl sign
+Ka 1.000 1.000 1.000
+Kd 1.000 1.000 1.000
+Ks 0.000 0.000 0.000
+d 1.0
+illum 1
+map_Kd ../materials/textures/left.png
+map_Ke ../materials/textures/left.png
+
+# Plain gray back face -- no texture, so the sign is unreadable from behind.
+newmtl back
+Ka 0.250 0.250 0.250
+Kd 0.300 0.300 0.300
+Ks 0.000 0.000 0.000
+d 1.0
+illum 1

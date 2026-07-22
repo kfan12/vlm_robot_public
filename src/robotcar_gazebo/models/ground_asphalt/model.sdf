@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<sdf version="1.7">
+  <model name="ground_asphalt">
+    <static>true</static>
+    <link name="link">
+      <!-- Visual only -- the world's ground_plane model keeps its own <plane>
+           collision geometry for physics; this model supplies just the
+           textured look, included at the same pose (0 0 0). -->
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://ground_asphalt/meshes/ground.obj</uri>
+          </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

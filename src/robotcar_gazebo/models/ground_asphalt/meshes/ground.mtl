@@ -1,0 +1,7 @@
+newmtl ground
+Ka 0.150 0.155 0.170
+Kd 1.000 1.000 1.000
+Ks 0.040 0.040 0.045
+d 1.0
+illum 1
+map_Kd ../materials/textures/asphalt.png

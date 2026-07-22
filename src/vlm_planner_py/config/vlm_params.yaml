@@ -1,0 +1,233 @@
+vlm_planner:
+  ros__parameters: 
+    mode: "opencv"  # Options: "vlm", "fake_path", "opencv"
+    model_name: "HuggingFaceTB/SmolVLM2-500M-Video-Instruct"
+    device: "cuda"
+    torch_dtype: "float16"
+    # OpenCV planner loop rate. In "opencv" mode this is the ONLY planning loop,
+    # so run it fast for tight lane tracking. (When VLM is added later, give the
+    # VLM its OWN slow timer rather than lowering this — the loops are separate.)
+    planner_rate_hz: 10.0
+    # Forward horizon for the gray-line centerline [m]: clip far, noisy-depth
+    # markings that otherwise drag the planned path out of the lane on curves.
+    # 2026-07-04 dump analysis: raising this to 3.0 re-admitted the noisy far
+    # band — ~33 burst events of 0.3-1.8 m lateral swings at x>=1.5 per ~1000
+    # frames, while x=0.5 stayed at ~1 cm median jitter. Keep the horizon at 2.0.
+    # Tried 2.5 in autotune loop 7 (longer apex chain at sharp corners) but
+    # the straight-segment lateral std degraded 3.5 -> 4.8 cm (the far-tail
+    # jump effect this 2.0 was chosen against). Reverted; the corner apex is
+    # instead carried by the committed-turn creep arc (vlm_node fallback).
+    line_d_max_m: 2.0
+    # Path smoothing. path_fit_degree = degree of the stateless poly fit y=f(x)
+    # that de-noises per-frame jitter with NO temporal lag. The number is the
+    # highest power of x = how many bends the smoothed path may have:
+    #   0 -> NOT degree zero: disables the fit, uses a moving average of
+    #        smooth_window instead (robust everywhere; required on U-turns where
+    #        the lane doubles back and y=f(x) is invalid). <-- shipped
+    #   1 -> straight line (0 bends)
+    #   2 -> parabola (1 bend, a "C")
+    #   3 -> cubic (1 inflection, an "S") -- safe default on x-monotonic segments
+    #   n -> up to n-1 bends; too high overfits noise / whips at the ends
+    # Tuning: lowest degree that still follows the bend. Path cuts the corner ->
+    # raise it; path whips/bulges at the far end -> lower it (or use 0).
+    path_fit_degree: 0
+    # Moving-average width in POINTS, used ONLY when path_fit_degree = 0 (dormant
+    # otherwise). Centered average of `smooth_window` neighbours; the near/far
+    # `window//2` endpoints are left RAW. Use ODD values (even rounds down: 4==5).
+    # It runs on the pre-resample centerline (~0.25 m point spacing), so the
+    # smoothing length is approx smooth_window * 0.25 m -- keep that BELOW the
+    # curve radius or it pulls the bend toward its chord (cuts corners + lags):
+    #   3 -> ~0.75 m  light (keeps curvature)
+    #   5 -> ~1.25 m  moderate (shipped); borderline on the tight S
+    #   7 -> ~1.75 m  heavy, flattens real bends -- avoid on tight curves
+    # Tune: start 3; raise if still jittery; lower (or use the poly fit) if it
+    # rounds the bend or the near point stays noisy.
+    smooth_window: 3
+    # Uniform arc-length spacing of the published path [m]. Smaller = finer curve
+    # detail + steadier per-pose headings but more poses; larger = coarser/fewer.
+    path_spacing_m: 0.3
+    image_width: 640
+    image_height: 360
+    use_depth: true
+    camera_frame: "front_camera_optical_frame"
+    robot_frame: "base_link"
+    output_frame: "odom"
+    max_path_distance_m: 6.0
+    min_path_distance_m: 0.3
+    min_confidence: 0.45
+    # A frame whose centerline folds back on itself (>90 deg between segments —
+    # chains hopped between boundaries / U-turn apex seen sideways) is REJECTED:
+    # within max_reuse_time_sec of the last good lane frame the node publishes
+    # NOTHING (the MPC keeps tracking the last path); after that it creeps.
+    reuse_last_path_if_failed: true
+    max_reuse_time_sec: 1.5
+    stop_on_failure: true
+    path_topic: "/vlm_path_odom"
+    odometry_topic: "/odom_ekf"
+    fallback_mode: "opencv"
+
+    # Height gate (base_link z, metres): rejects same-coloured objects above the
+    # cones. base_link is ~ground level, so cones (centre ~0.1 m) pass and the
+    # roadside sign boards (~0.55 m) are dropped — keeps the yellow signs out of
+    # cone detection and the red STOP board out of goal detection.
+    cone_height_min_m: -0.3
+    cone_height_max_m: 0.3
+
+    # Separate, tighter z-gate for the lane markings: paint sits at z~0 (no height
+    # like a cone), so a narrower window rejects line points thrown to elevated z by
+    # depth noise while still dropping the sign boards (~0.55 m).
+    line_z_min_m: -0.15
+    line_z_max_m: 0.15
+
+    # Debug FPV overlay: republish the front camera image with detections drawn
+    # on it (hollow = raw detection, filled = height-accepted). View in RViz as
+    # an Image display on debug_image_topic.
+    publish_debug_image: true
+    debug_image_topic: "/vlm/debug_image"
+
+    # Offline centerline debug: when NON-EMPTY, every lane-following frame appends its
+    # base_link cloud + raw centerline + published path to <dir>/lane_cloud.jsonl.
+    # Visualize with: python3 test/debug_centerline.py <dir>/lane_cloud.jsonl
+    # Jump/oscillation stats: python3 test/analyze_lane_jumps.py <dir>/lane_cloud.jsonl
+    # (use SYSTEM python, NOT the venv -- the venv NumPy 2 breaks system matplotlib).
+    # Default OFF; the debugkit recorder redirects it into the session live
+    # (scripts/record_session.sh --lane-dump) — do not leave a path baked in
+    # here, it grows an unbounded background jsonl on every run.
+    lane_cloud_dump_dir: ""
+
+    # Final-sign arbitration reach [m]: the VLM label (left/right/winding/stop) is
+    # only promoted to the candidate maneuver (pending_sign) when the localized sign
+    # board is within this range ahead (0 < dist < sign_reach_dist_m). Beyond it, or
+    # when the distance is unknown/behind, pending_sign = none (plain line following).
+    # Raised 3.0 -> 5.0 -> 6.5 (loops 2/8): turn/winding geometry begins
+    # BEFORE the board; reach must stay > the largest commit distance so the
+    # label arms on approach before the commit fires.
+    sign_reach_dist_m: 6.5
+
+    # Sign COMMIT distance [m]: the armed maneuver begins on the first frame the localized
+    # board comes within this range AHEAD (NOT when it passes behind, the old behaviour).
+    # Must be < sign_reach_dist_m so the label is armed on the approach before the commit
+    # fires. Larger => the turn starts earlier / farther before the feature; ~0 reproduces
+    # the old "commit only once the board is basically at/behind the robot".
+    # 1.5 -> 3.5 -> 5.0 (loops 2/8): engage the maneuver (its speed + MPC
+    # heading lookahead) before the feature's geometry starts, not at the
+    # board. The winding S starts ~3-4 m and the terminal U-turn ~5 m before
+    # their boards; early entry only means slowing down sooner (direction
+    # still comes from the path). STOP is the exception — it halts where it
+    # commits, so it uses its own LATE distance below.
+    sign_commit_dist_m: 2.0
+    sign_commit_stop_dist_m: 2.0
+    # WINDING exception (early commit): the S-geometry begins ~3-4 m before
+    # its board. Loops 2 AND 10 both diverged (crosstrack 1.5-1.6 m within
+    # ~2 s) hitting the first S bend in 'straight' at cruise with the short
+    # commit. The label lock cannot help here — it protects the LABEL, not
+    # the entry timing. Must stay < sign_reach_dist_m.
+    sign_commit_winding_dist_m: 4.0
+
+    # Label LOCK distance [m]: once the tracked board is inside this range
+    # with a latched label, the decision is FROZEN — no further VLM read can
+    # change it and no nearer blob can steal the board identity (sign_odom) —
+    # so the board escaping the camera view on the final approach cannot lose
+    # or corrupt the detection before the (short) commit distance is reached.
+    # Must be > the commit distances; releases when the board passes behind.
+    sign_label_lock_dist_m: 3.2
+
+    # VLM label READ acceptance band [m] (sign_latch.py): a Qwen read is attributed to
+    # the board latched when its FRAME was captured (~2 s inference lag) and only enters
+    # the label latch if that board was inside [min, max]:
+    #   max (ceiling): far reads are unreliable (small board) -> ignored, so a wrong
+    #                  guess from 6-8 m can never arm a maneuver.
+    #   min (floor):   below ~3.3 m the pitched-down camera crops the board out of the
+    #                  frame top (STOP letters gone by ~2.7 m); reads there are 'none'
+    #                  or the NEXT sign's symbol -> the latched label is FROZEN instead
+    #                  (fixes the stop-sign dropout AND two-signs-in-view misattribution).
+    # Within the band the newest read wins (recognition refines on approach); 'none'
+    # never erases; the latch clears when the board passes behind.
+    # Band WIDTH must cover the VLM read cadence: Qwen answers every ~3 s =
+    # every ~3.6 m at the 1.2 m/s cruise, so the old 4.0-5.0 band was a
+    # timing lottery (loop-1 autotune run: reads landed at 9.5/3.5/0.3 m,
+    # none in band, no latch -> car hit the corner in 'straight' at cruise
+    # speed). 3.4 keeps the crop-out floor (~3.3 m); 6.0 relies on the ROI
+    # crop (active from further out now that sign_z_min_m admits the board
+    # early) + newest-read-wins refinement.
+    # Ceiling raised 6.0 -> 8.0 (loop-4 autotune): with the ROI crop active
+    # from ~9 m (z-gate 0.2) the far reads are the RELIABLE ones — both
+    # 'right' reads at 9.1/6.6 m were correct while the close 3.5 m read saw
+    # an edge-clipped half-board and said 'left'. Close clipped frames are
+    # now rejected outright (vlm_node edge-clip guard), so the band's job is
+    # to admit the fully-visible mid-range reads.
+    sign_label_max_dist_m: 8.0
+    sign_label_min_dist_m: 3.2
+
+    # ROI hand-off to the VLM sign node: the planner publishes the latched board's
+    # pixel box (JSON on sign_roi_topic); the sign node crops its frame to it before
+    # Qwen. Root cause (test/lanedump/stop_probe, 2026-07-04): full-frame Qwen picks
+    # the CLOSEST board-shaped object — on the last straight that is the featureless
+    # BACK of the passed left sign, so it answered 'none' at 5.5-2.8 m even though
+    # the STOP face was perfectly legible (prompt steering did NOT fix it; the ROI
+    # crop read 'stop' 5/5 at all probed distances with the unchanged prompt).
+    sign_roi_topic: "/vlm/sign_roi"
+    sign_board_width_m: 0.45
+
+    # Sign-board z-gate [m] (height band of projected blob candidates). The
+    # board's projected z reads LOW at range under the headless renderer's
+    # depth (loop-0 autotune run: z 0.28 at 9.5 m rising to 0.41 at 4.4 m),
+    # so the old 0.4 floor only admitted the board inside ~4.5 m — too late
+    # to track it, publish the ROI crop, or measure distance for the label
+    # band. 0.2 admits it from ~10 m; the lane's line points sit within
+    # |z| <= 0.15 (line_z_min/max_m) so they stay excluded.
+    sign_z_min_m: 0.2
+    sign_z_max_m: 0.8
+
+    # Maneuver state machine (see maneuver.py / KB §2.19). A turn/winding maneuver is
+    # ENTERED when the sign board comes within sign_commit_dist_m ahead, and EXITED back to
+    # 'straight' when the planned lane path is straight again -- with engage-then-release
+    # hysteresis on the
+    # path's summed |heading change| [rad].
+    #   maneuver_engage_tol_rad : path must bend past this before a straight path can
+    #                             release the maneuver (stops the straight APPROACH
+    #                             before the turn from ending it early). Raise if a
+    #                             gentle bend never engages; lower if noise engages it.
+    #   straight_heading_tol_rad: path counts as 'straight again' below this. Keep well
+    #                             under engage_tol. Raise if it never releases; lower if
+    #                             it releases mid-curve.
+    #   straight_release_dist_m : metres of CONTINUOUSLY-STRAIGHT road the robot must
+    #                             travel before the maneuver releases. A WINDING road is
+    #                             only briefly straight at each inflection, so this must
+    #                             exceed that inflection length but stay under a real
+    #                             straightaway. Raise if winding still flips to 'straight'
+    #                             between S-bends; lower if release lags too long after a
+    #                             turn. (Distance, not frames -> speed/rate-independent.)
+    #   straight_min_len_m      : minimum path length [m] to judge straightness (a short
+    #                             path reads straight regardless).
+    maneuver_engage_tol_rad: 0.35
+    straight_heading_tol_rad: 0.20
+    straight_release_dist_m: 1.0
+    straight_min_len_m: 1.0
+
+    # Phase 5 — maneuver state -> speed setpoint [m/s], published on target_speed_topic
+    # (Float64) every plan tick. The MPC subscribes and overrides its own target speed at
+    # runtime (params are read once at startup). Turn DIRECTION lives in the path; only
+    # SPEED is set here. Keep speed_straight <= the MPC's target_speed_mps so the no-setpoint
+    # fail-safe (dead planner) holds the intended cruise. straight/none -> speed_straight;
+    # left/right -> speed_turn; winding -> speed_winding; stop -> speed_stop.
+    speed_straight: 0.9
+    speed_turn: 0.6
+    speed_winding: 0.6
+    speed_stop: 0.0
+    target_speed_topic: "/maneuver/target_speed"
+
+# ---------------------------------------------------------------------------
+# VLM sign node (vlm_sign_node.py — Qwen reader, runs in the torch venv).
+# Launched with `--params-file <this file>`; both launchers
+# (scripts/_path_demo_pane.sh pane 7 and scripts/headless_stack.sh) pass it.
+# ---------------------------------------------------------------------------
+vlm_sign:
+  ros__parameters:
+    # Qwen query cadence [Hz]. The EFFECTIVE read interval is
+    # max(1/rate, inference time ~1.7-2.0 s on the 3060) — rates above
+    # ~0.5 Hz mostly just queue behind inference. At cruise 1.2 m/s the car
+    # covers (interval x 1.2) m between reads; the label band
+    # (sign_label_min/max_dist_m above) must stay wider than that or
+    # in-band reads become a lottery (autotune loop 1).
+    vlm_query_rate_hz: 0.5

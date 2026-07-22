@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="405" viewBox="0 0 720 405">
+  <rect width="720" height="405" fill="#1e293b" rx="10"/>
+  <rect x="10" y="10" width="700" height="385" fill="none" stroke="#64748b" stroke-width="3" stroke-dasharray="14 10" rx="10"/>
+  <!-- stop sign sketch -->
+  <polygon points="360,255 385,265 395,290 385,315 360,325 335,315 325,290 335,265" fill="#dc2626" stroke="#fecaca" stroke-width="3"/>
+  <text x="360" y="298" text-anchor="middle" font-family="Segoe UI, Ubuntu, sans-serif" font-size="18" font-weight="700" fill="#ffffff">STOP</text>
+  <rect x="356" y="325" width="8" height="45" fill="#94a3b8"/>
+  <text x="360" y="130" text-anchor="middle" font-family="Segoe UI, Ubuntu, sans-serif" font-size="30" font-weight="600" fill="#e2e8f0">Gazebo — car approaching a traffic sign</text>
+  <text x="360" y="168" text-anchor="middle" font-family="Segoe UI, Ubuntu, sans-serif" font-size="19" fill="#94a3b8">screenshot placeholder — replace with the real image</text>
+</svg>

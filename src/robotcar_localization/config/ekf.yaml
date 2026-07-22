@@ -1,0 +1,39 @@
+# robot_localization EKF — fuses wheel /odom (velocities) with the noisy /imu
+# (heading + yaw-rate) into /odom_ekf. The EKF owns odom->base_link (publish_tf:
+# true); the Gazebo wheel-odom TF bridge is disabled so there is no TF conflict.
+ekf_filter_node:
+  ros__parameters:
+    # 30 Hz matches the MPC control rate (the fastest consumer; planner runs at
+    # 10 Hz). 50 Hz missed its 20 ms budget on the loaded WSL2 CPU (cycles took
+    # 24-32 ms -> "Failed to meet update rate" + erratically late /odom_ekf);
+    # the 33 ms budget at 30 Hz clears the measured cycle time.
+    frequency: 30.0
+    sensor_timeout: 0.2
+    two_d_mode: true
+    publish_tf: true
+
+    map_frame: map
+    odom_frame: odom
+    base_link_frame: base_link
+    world_frame: odom
+
+    # Wheel odometry: trust its body-frame linear velocity, not its (drifting)
+    # absolute pose or heading.
+    odom0: /odom
+    #              x      y      z      roll   pitch  yaw    vx     vy     vz     vr     vp     vyaw   ax     ay     az
+    odom0_config: [false, false, false, false, false, false, true,  true,  false, false, false, false, false, false, false]
+    odom0_differential: false
+    odom0_relative: false
+    odom0_queue_size: 10
+
+    # IMU: heading (yaw) + yaw-rate from the gyro + forward acceleration.
+    imu0: /imu
+    #             x      y      z      roll   pitch  yaw    vx     vy     vz     vr     vp     vyaw   ax     ay     az
+    imu0_config: [false, false, false, false, false, true,  false, false, false, false, false, true,  true,  false, false]
+    imu0_differential: false
+    imu0_relative: false
+    imu0_queue_size: 10
+    imu0_remove_gravitational_acceleration: true
+    # process_noise_covariance left at robot_localization defaults (a custom
+    # matrix must have every element the same YAML type — mixing 0 and 0.0
+    # makes the rcl parser fail with "Sequence should be of same type").

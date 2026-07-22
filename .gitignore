@@ -1,0 +1,49 @@
+# ROS 2 colcon build artifacts
+build/
+install/
+log/
+
+# Claude Code project instructions
+#CLAUDE.md
+#.claude/
+
+# Documentation
+#docs/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+
+# C++ build artifacts
+*.o
+*.a
+*.so
+
+# Editor/IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment
+.env
+
+# records
+records/
+bags/
+
+
+# debugkit recording sessions (tools/debugkit, docs/testing_pipeline.md)
+data/sessions/
+data/
+
+# Captured frames (scripts/capture_frame.py)
+captures/
+
+# Lane-cloud debug dumps (vlm_params.yaml lane_cloud_dump_dir)
+test/lanedump/
+
+# clangd compile DB (root symlink into build/ — colcon regenerates it)
+compile_commands.json

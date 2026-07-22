@@ -1,0 +1,78 @@
+# ---------------------------------------------------------------------------
+# topics.yaml — signal catalog + recording presets for record_session.py
+#
+# signals: every recordable signal, keyed by a short name. The name becomes the
+#   file name inside the session folder (signals/<name>.csv, images/<name>/,
+#   paths/<name>/).
+#
+#   kind selects the extractor:
+#     odometry  nav_msgs/Odometry   -> t,t_recv,x,y,yaw,vx,vy,wz
+#     imu       sensor_msgs/Imu     -> t,t_recv,yaw,wx,wy,wz,ax,ay,az
+#     twist     geometry_msgs/Twist -> t,t_recv,v,wz            (no header; t = receive time)
+#     float64   std_msgs/Float64    -> t,t_recv,value           (no header; t = receive time)
+#     string    std_msgs/String     -> t,t_recv,value           (no header; t = receive time)
+#     path      nav_msgs/Path       -> paths/<name>/<t_ns>.csv (x,y) + index.csv
+#     image     sensor_msgs/Image   -> images/<name>/<t_ns>.jpg + index.csv
+#     depth     sensor_msgs/Image   -> images/<name>/<t_ns>.npy (float32 m) + index.csv
+#
+#   min_interval (seconds, optional): drop messages arriving faster than this.
+#     Use it on image/path topics to bound disk usage. 0 = keep everything.
+#
+# presets: named bundles. Entries may be signal names OR other preset names
+#   (resolved recursively), so e.g. `full` can include `core`.
+# ---------------------------------------------------------------------------
+
+signals:
+  # -- state estimation ------------------------------------------------------
+  odom:           {topic: /odom,                  kind: odometry}   # wheel odom (Ackermann plugin)
+  odom_ekf:       {topic: /odom_ekf,              kind: odometry}   # robot_localization EKF (MPC input)
+  odom_truth:     {topic: /odom_truth,            kind: odometry}   # Gazebo ground truth
+  imu:            {topic: /imu,                   kind: imu}
+
+  # -- control ---------------------------------------------------------------
+  cmd_vel:        {topic: /cmd_vel,               kind: twist}      # MPC output command
+  target_speed:   {topic: /maneuver/target_speed, kind: float64}    # maneuver FSM speed setpoint
+  maneuver_state: {topic: /maneuver/state,        kind: string}     # straight/left/right/winding/stop
+  mpc_vref:       {topic: /mpc/v_ref_ramped,      kind: float64}    # slew-limited target the QP chases
+  mpc_cmd_accel:  {topic: /mpc/cmd_accel,         kind: float64}    # raw QP accel command [m/s^2]
+  mpc_cmd_steer:  {topic: /mpc/cmd_steer,         kind: float64}    # raw QP steer command [rad]
+
+  # -- VLM sign pipeline -----------------------------------------------------
+  sign:           {topic: /vlm/sign,              kind: string}     # Qwen sign label
+  pending_sign:   {topic: /vlm/pending_sign,      kind: string}     # arbitrated candidate maneuver (armed while in reach)
+  sign_roi:       {topic: /vlm/sign_roi,          kind: string}     # latched-board ROI (JSON)
+
+  # -- node-internal debug taps (vlm_planner_py/debugtap.py) ------------------
+  # Recording a tap auto-enables the node's `debug_tap` param (and disables it
+  # again on stop). Payload -> taps/<name>.jsonl.
+  planner_tap:    {topic: /debug/vlm_planner,     kind: tap}        # centerline internals + tick outcome
+
+  # -- planner / MPC paths ---------------------------------------------------
+  vlm_path:       {topic: /vlm_path_odom,         kind: path, min_interval: 0.5}
+  mpc_ref_path:   {topic: /mpc_reference_path,    kind: path, min_interval: 0.5}
+  mpc_pred_path:  {topic: /mpc_predicted_path,    kind: path, min_interval: 0.5}
+
+  # -- cameras / debug imagery ----------------------------------------------
+  front_camera:   {topic: /camera/front/image_raw,        kind: image, min_interval: 1.0}
+  front_depth:    {topic: /camera/front/depth/image_raw,  kind: depth, min_interval: 1.0}
+  debug_image:    {topic: /vlm/debug_image,               kind: image, min_interval: 1.0}
+  sign_image:     {topic: /vlm/sign_image,                kind: image}  # rare -> keep all
+
+presets:
+  # minimal always-useful set: every analysis in analyze_session.py works off this
+  core:   [odom, odom_ekf, odom_truth, imu, cmd_vel, target_speed, maneuver_state, sign, pending_sign]
+  # planner/MPC path snapshots (enables the cross-track tracking-error analysis)
+  paths:  [vlm_path, mpc_ref_path, mpc_pred_path]
+  # raw front camera frames (0.5 s throttle)
+  camera: [front_camera, front_depth]
+  # VLM debugging: sign labels + ROI + annotated debug imagery
+  vlm:    [sign, pending_sign, sign_roi]
+  # image
+  images: [front_camera, front_depth, debug_image, sign_image]
+  # node-internal signals (centerline internals + MPC control debug); pair with
+  # record's --lane-dump flag for the full per-frame point clouds
+  debug:  [planner_tap, mpc_vref, mpc_cmd_accel, mpc_cmd_steer]
+  # everything above
+  full:   [core, paths, images, vlm, debug]
+  # all but images (for smaller disk usage)
+  full_no_images: [core, paths, vlm, debug]

@@ -1,0 +1,778 @@
+<?xml version="1.0"?>
+<sdf version="1.7">
+  <world name="cone_lane">
+
+    <physics type="ode">
+      <max_step_size>0.004</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+
+    <plugin filename="libignition-gazebo-physics-system.so"
+      name="ignition::gazebo::systems::Physics" />
+    <plugin filename="libignition-gazebo-user-commands-system.so"
+      name="ignition::gazebo::systems::UserCommands" />
+    <plugin filename="libignition-gazebo-scene-broadcaster-system.so"
+      name="ignition::gazebo::systems::SceneBroadcaster" />
+    <plugin filename="libignition-gazebo-sensors-system.so"
+      name="ignition::gazebo::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+    <plugin filename="libignition-gazebo-imu-system.so"
+      name="ignition::gazebo::systems::Imu" />
+
+    <!-- Scene-level ambient fill — prevents fully-black shadows -->
+    <scene>
+      <ambient>0.4 0.4 0.4 1</ambient>
+      <background>0.25 0.25 0.25 1</background>
+      <shadows>true</shadows>
+    </scene>
+
+    <!-- Directional sun -->
+    <light type="directional" name="sun">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>0.9 0.9 0.9 1</diffuse>
+      <specular>0.3 0.3 0.3 1</specular>
+      <attenuation>
+        <range>1000</range>
+        <constant>0.9</constant>
+        <linear>0.01</linear>
+        <quadratic>0.001</quadratic>
+      </attenuation>
+      <direction>-0.5 0.1 -0.9</direction>
+    </light>
+
+    <!-- Ground plane — light concrete grey -->
+    <model name="ground_plane">
+      <static>true</static>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>150 150</size>
+            </plane>
+          </geometry>
+          <surface>
+            <friction>
+              <ode>
+                <mu>1.0</mu>
+              </ode>
+            </friction>
+          </surface>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>100 100</size>
+            </plane>
+          </geometry>
+          <material>
+            <ambient>0.55 0.55 0.55 1</ambient>
+            <diffuse>0.70 0.70 0.70 1</diffuse>
+            <specular>0.05 0.05 0.05 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Left-curving lane: both rows drift left while keeping a
+         constant 0.8 m gate width, so the centerline arcs gently to the left.
+         Left row  : (1,0.4) (2,0.5) (3,0.7) (4,1.0)
+         Right row : (1,-0.4) (2,-0.3) (3,-0.1) (4,0.2)  -->
+
+    <!-- Left yellow cone row -->
+    <model name="cone_L1">
+      <static>true</static>
+      <pose>-4.0 0.4 0.1 0 0 0</pose>
+      <link name="link">
+        <visual name="v">
+          <geometry>
+            <cylinder>
+              <radius>0.05</radius>
+              <length>0.2</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.9 0.8 0.0 1</ambient>
+            <diffuse>1.0 0.9 0.0 1</diffuse>
+            <specular>0.2 0.2 0.0 1</specular>
+          </material>
+        </visual>
+        <collision name="c">
+          <geometry>
+            <cylinder>
+              <radius>0.05</radius>
+              <length>0.2</length>
+            </cylinder>
+          </geometry>
+        </collision>
+      </link>
+    </model>
+
+    <model name="cone_L2">
+      <static>true</static>
+      <pose>-3.0 0.5 0.1 0 0 0</pose>
+      <link name="link">
+        <visual name="v">
+          <geometry>
+            <cylinder>
+              <radius>0.05</radius>
+              <length>0.2</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.9 0.8 0.0 1</ambient>
+            <diffuse>1.0 0.9 0.0 1</diffuse>
+            <specular>0.2 0.2 0.0 1</specular>
+          </material>
+        </visual>
+        <collision name="c">
+          <geometry>
+            <cylinder>
+              <radius>0.05</radius>
+              <length>0.2</length>
+            </cylinder>
+          </geometry>
+        </collision>
+      </link>
+    </model>
+
+    <model name="cone_L3">
+      <static>true</static>
+      <pose>-2.0 0.7 0.1 0 0 0</pose>
+      <link name="link">
+        <visual name="v">
+          <geometry>
+            <cylinder>
+              <radius>0.05</radius>
+              <length>0.2</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.9 0.8 0.0 1</ambient>
+            <diffuse>1.0 0.9 0.0 1</diffuse>
+            <specular>0.2 0.2 0.0 1</specular>
+          </material>
+        </visual>
+        <collision name="c">
+          <geometry>
+            <cylinder>
+              <radius>0.05</radius>
+              <length>0.2</length>
+            </cylinder>
+          </geometry>
+        </collision>
+      </link>
+    </model>
+
+    <model name="cone_L4">
+      <static>true</static>
+      <pose>-1.0 1.0 0.1 0 0 0</pose>
+      <link name="link">
+        <visual name="v">
+          <geometry>
+            <cylinder>
+              <radius>0.05</radius>
+              <length>0.2</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.9 0.8 0.0 1</ambient>
+            <diffuse>1.0 0.9 0.0 1</diffuse>
+            <specular>0.2 0.2 0.0 1</specular>
+          </material>
+        </visual>
+        <collision name="c">
+          <geometry>
+            <cylinder>
+              <radius>0.05</radius>
+              <length>0.2</length>
+            </cylinder>
+          </geometry>
+        </collision>
+      </link>
+    </model>
+
+    <!-- Right yellow cone row -->
+    <model name="cone_R1">
+      <static>true</static>
+      <pose>-4.0 -0.4 0.1 0 0 0</pose>
+      <link name="link">
+        <visual name="v">
+          <geometry>
+            <cylinder>
+              <radius>0.05</radius>
+              <length>0.2</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.9 0.8 0.0 1</ambient>
+            <diffuse>1.0 0.9 0.0 1</diffuse>
+            <specular>0.2 0.2 0.0 1</specular>
+          </material>
+        </visual>
+        <collision name="c">
+          <geometry>
+            <cylinder>
+              <radius>0.05</radius>
+              <length>0.2</length>
+            </cylinder>
+          </geometry>
+        </collision>
+      </link>
+    </model>
+
+    <model name="cone_R2">
+      <static>true</static>
+      <pose>-3.0 -0.3 0.1 0 0 0</pose>
+      <link name="link">
+        <visual name="v">
+          <geometry>
+            <cylinder>
+              <radius>0.05</radius>
+              <length>0.2</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.9 0.8 0.0 1</ambient>
+            <diffuse>1.0 0.9 0.0 1</diffuse>
+            <specular>0.2 0.2 0.0 1</specular>
+          </material>
+        </visual>
+        <collision name="c">
+          <geometry>
+            <cylinder>
+              <radius>0.05</radius>
+              <length>0.2</length>
+            </cylinder>
+          </geometry>
+        </collision>
+      </link>
+    </model>
+
+    <model name="cone_R3">
+      <static>true</static>
+      <pose>-2.0 -0.1 0.1 0 0 0</pose>
+      <link name="link">
+        <visual name="v">
+          <geometry>
+            <cylinder>
+              <radius>0.05</radius>
+              <length>0.2</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.9 0.8 0.0 1</ambient>
+            <diffuse>1.0 0.9 0.0 1</diffuse>
+            <specular>0.2 0.2 0.0 1</specular>
+          </material>
+        </visual>
+        <collision name="c">
+          <geometry>
+            <cylinder>
+              <radius>0.05</radius>
+              <length>0.2</length>
+            </cylinder>
+          </geometry>
+        </collision>
+      </link>
+    </model>
+
+    <model name="cone_R4">
+      <static>true</static>
+      <pose>-1.0 0.2 0.1 0 0 0</pose>
+      <link name="link">
+        <visual name="v">
+          <geometry>
+            <cylinder>
+              <radius>0.05</radius>
+              <length>0.2</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.9 0.8 0.0 1</ambient>
+            <diffuse>1.0 0.9 0.0 1</diffuse>
+            <specular>0.2 0.2 0.0 1</specular>
+          </material>
+        </visual>
+        <collision name="c">
+          <geometry>
+            <cylinder>
+              <radius>0.05</radius>
+              <length>0.2</length>
+            </cylinder>
+          </geometry>
+        </collision>
+      </link>
+    </model>
+
+    <!-- S-curve second half: centerline crests at (5,0.7) then reverses,
+         passing through 0 near x=8 down to a (11,-0.7) trough. Same constant
+         0.8 m gate width, so the lane swings left-then-right (an S). -->
+
+    <model name="cone_L5">
+      <static>true</static>
+      <pose>0.0 1.1 0.1 0 0 0</pose>
+      <link name="link">
+        <visual name="v">
+          <geometry>
+            <cylinder>
+              <radius>0.05</radius>
+              <length>0.2</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.9 0.8 0.0 1</ambient>
+            <diffuse>1.0 0.9 0.0 1</diffuse>
+            <specular>0.2 0.2 0.0 1</specular>
+          </material>
+        </visual>
+        <collision name="c">
+          <geometry>
+            <cylinder>
+              <radius>0.05</radius>
+              <length>0.2</length>
+            </cylinder>
+          </geometry>
+        </collision>
+      </link>
+    </model>
+
+    <model name="cone_R5">
+      <static>true</static>
+      <pose>0.0 0.3 0.1 0 0 0</pose>
+      <link name="link">
+        <visual name="v">
+          <geometry>
+            <cylinder>
+              <radius>0.05</radius>
+              <length>0.2</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.9 0.8 0.0 1</ambient>
+            <diffuse>1.0 0.9 0.0 1</diffuse>
+            <specular>0.2 0.2 0.0 1</specular>
+          </material>
+        </visual>
+        <collision name="c">
+          <geometry>
+            <cylinder>
+              <radius>0.05</radius>
+              <length>0.2</length>
+            </cylinder>
+          </geometry>
+        </collision>
+      </link>
+    </model>
+
+
+    <model name="cone_L6">
+      <static>true</static>
+      <pose>1.0 1.0 0.1 0 0 0</pose>
+      <link name="link">
+        <visual name="v">
+          <geometry>
+            <cylinder>
+              <radius>0.05</radius>
+              <length>0.2</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.9 0.8 0.0 1</ambient>
+            <diffuse>1.0 0.9 0.0 1</diffuse>
+            <specular>0.2 0.2 0.0 1</specular>
+          </material>
+        </visual>
+        <collision name="c">
+          <geometry>
+            <cylinder>
+              <radius>0.05</radius>
+              <length>0.2</length>
+            </cylinder>
+          </geometry>
+        </collision>
+      </link>
+    </model>
+
+    <model name="cone_R6">
+      <static>true</static>
+      <pose>1.0 0.2 0.1 0 0 0</pose>
+      <link name="link">
+        <visual name="v">
+          <geometry>
+            <cylinder>
+              <radius>0.05</radius>
+              <length>0.2</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.9 0.8 0.0 1</ambient>
+            <diffuse>1.0 0.9 0.0 1</diffuse>
+            <specular>0.2 0.2 0.0 1</specular>
+          </material>
+        </visual>
+        <collision name="c">
+          <geometry>
+            <cylinder>
+              <radius>0.05</radius>
+              <length>0.2</length>
+            </cylinder>
+          </geometry>
+        </collision>
+      </link>
+    </model>
+
+
+    <model name="cone_L7">
+      <static>true</static>
+      <pose>2.0 0.7 0.1 0 0 0</pose>
+      <link name="link">
+        <visual name="v">
+          <geometry>
+            <cylinder>
+              <radius>0.05</radius>
+              <length>0.2</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.9 0.8 0.0 1</ambient>
+            <diffuse>1.0 0.9 0.0 1</diffuse>
+            <specular>0.2 0.2 0.0 1</specular>
+          </material>
+        </visual>
+        <collision name="c">
+          <geometry>
+            <cylinder>
+              <radius>0.05</radius>
+              <length>0.2</length>
+            </cylinder>
+          </geometry>
+        </collision>
+      </link>
+    </model>
+
+    <model name="cone_R7">
+      <static>true</static>
+      <pose>2.0 -0.1 0.1 0 0 0</pose>
+      <link name="link">
+        <visual name="v">
+          <geometry>
+            <cylinder>
+              <radius>0.05</radius>
+              <length>0.2</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.9 0.8 0.0 1</ambient>
+            <diffuse>1.0 0.9 0.0 1</diffuse>
+            <specular>0.2 0.2 0.0 1</specular>
+          </material>
+        </visual>
+        <collision name="c">
+          <geometry>
+            <cylinder>
+              <radius>0.05</radius>
+              <length>0.2</length>
+            </cylinder>
+          </geometry>
+        </collision>
+      </link>
+    </model>
+
+
+    <model name="cone_L8">
+      <static>true</static>
+      <pose>3.0 0.4 0.1 0 0 0</pose>
+      <link name="link">
+        <visual name="v">
+          <geometry>
+            <cylinder>
+              <radius>0.05</radius>
+              <length>0.2</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.9 0.8 0.0 1</ambient>
+            <diffuse>1.0 0.9 0.0 1</diffuse>
+            <specular>0.2 0.2 0.0 1</specular>
+          </material>
+        </visual>
+        <collision name="c">
+          <geometry>
+            <cylinder>
+              <radius>0.05</radius>
+              <length>0.2</length>
+            </cylinder>
+          </geometry>
+        </collision>
+      </link>
+    </model>
+
+    <model name="cone_R8">
+      <static>true</static>
+      <pose>3.0 -0.4 0.1 0 0 0</pose>
+      <link name="link">
+        <visual name="v">
+          <geometry>
+            <cylinder>
+              <radius>0.05</radius>
+              <length>0.2</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.9 0.8 0.0 1</ambient>
+            <diffuse>1.0 0.9 0.0 1</diffuse>
+            <specular>0.2 0.2 0.0 1</specular>
+          </material>
+        </visual>
+        <collision name="c">
+          <geometry>
+            <cylinder>
+              <radius>0.05</radius>
+              <length>0.2</length>
+            </cylinder>
+          </geometry>
+        </collision>
+      </link>
+    </model>
+
+
+    <model name="cone_L9">
+      <static>true</static>
+      <pose>4.0 0.1 0.1 0 0 0</pose>
+      <link name="link">
+        <visual name="v">
+          <geometry>
+            <cylinder>
+              <radius>0.05</radius>
+              <length>0.2</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.9 0.8 0.0 1</ambient>
+            <diffuse>1.0 0.9 0.0 1</diffuse>
+            <specular>0.2 0.2 0.0 1</specular>
+          </material>
+        </visual>
+        <collision name="c">
+          <geometry>
+            <cylinder>
+              <radius>0.05</radius>
+              <length>0.2</length>
+            </cylinder>
+          </geometry>
+        </collision>
+      </link>
+    </model>
+
+    <model name="cone_R9">
+      <static>true</static>
+      <pose>4.0 -0.7 0.1 0 0 0</pose>
+      <link name="link">
+        <visual name="v">
+          <geometry>
+            <cylinder>
+              <radius>0.05</radius>
+              <length>0.2</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.9 0.8 0.0 1</ambient>
+            <diffuse>1.0 0.9 0.0 1</diffuse>
+            <specular>0.2 0.2 0.0 1</specular>
+          </material>
+        </visual>
+        <collision name="c">
+          <geometry>
+            <cylinder>
+              <radius>0.05</radius>
+              <length>0.2</length>
+            </cylinder>
+          </geometry>
+        </collision>
+      </link>
+    </model>
+
+
+    <model name="cone_L10">
+      <static>true</static>
+      <pose>5.0 -0.2 0.1 0 0 0</pose>
+      <link name="link">
+        <visual name="v">
+          <geometry>
+            <cylinder>
+              <radius>0.05</radius>
+              <length>0.2</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.9 0.8 0.0 1</ambient>
+            <diffuse>1.0 0.9 0.0 1</diffuse>
+            <specular>0.2 0.2 0.0 1</specular>
+          </material>
+        </visual>
+        <collision name="c">
+          <geometry>
+            <cylinder>
+              <radius>0.05</radius>
+              <length>0.2</length>
+            </cylinder>
+          </geometry>
+        </collision>
+      </link>
+    </model>
+
+    <model name="cone_R10">
+      <static>true</static>
+      <pose>5.0 -1.0 0.1 0 0 0</pose>
+      <link name="link">
+        <visual name="v">
+          <geometry>
+            <cylinder>
+              <radius>0.05</radius>
+              <length>0.2</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.9 0.8 0.0 1</ambient>
+            <diffuse>1.0 0.9 0.0 1</diffuse>
+            <specular>0.2 0.2 0.0 1</specular>
+          </material>
+        </visual>
+        <collision name="c">
+          <geometry>
+            <cylinder>
+              <radius>0.05</radius>
+              <length>0.2</length>
+            </cylinder>
+          </geometry>
+        </collision>
+      </link>
+    </model>
+
+
+    <model name="cone_L11">
+      <static>true</static>
+      <pose>6.0 -0.3 0.1 0 0 0</pose>
+      <link name="link">
+        <visual name="v">
+          <geometry>
+            <cylinder>
+              <radius>0.05</radius>
+              <length>0.2</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.9 0.8 0.0 1</ambient>
+            <diffuse>1.0 0.9 0.0 1</diffuse>
+            <specular>0.2 0.2 0.0 1</specular>
+          </material>
+        </visual>
+        <collision name="c">
+          <geometry>
+            <cylinder>
+              <radius>0.05</radius>
+              <length>0.2</length>
+            </cylinder>
+          </geometry>
+        </collision>
+      </link>
+    </model>
+
+    <model name="cone_R11">
+      <static>true</static>
+      <pose>6.0 -1.1 0.1 0 0 0</pose>
+      <link name="link">
+        <visual name="v">
+          <geometry>
+            <cylinder>
+              <radius>0.05</radius>
+              <length>0.2</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.9 0.8 0.0 1</ambient>
+            <diffuse>1.0 0.9 0.0 1</diffuse>
+            <specular>0.2 0.2 0.0 1</specular>
+          </material>
+        </visual>
+        <collision name="c">
+          <geometry>
+            <cylinder>
+              <radius>0.05</radius>
+              <length>0.2</length>
+            </cylinder>
+          </geometry>
+        </collision>
+      </link>
+    </model>
+
+    <!-- Red goal cone — on the centerline just past the S, at the trough end. -->
+    <model name="cone_goal">
+      <static>true</static>
+      <pose>6.8 -0.7 0.125 0 0 0</pose>
+      <link name="link">
+        <visual name="v">
+          <geometry>
+            <cylinder>
+              <radius>0.07</radius>
+              <length>0.25</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.8 0.05 0.05 1</ambient>
+            <diffuse>0.95 0.1 0.1 1</diffuse>
+            <specular>0.3 0.05 0.05 1</specular>
+          </material>
+        </visual>
+        <collision name="c">
+          <geometry>
+            <cylinder>
+              <radius>0.07</radius>
+              <length>0.25</length>
+            </cylinder>
+          </geometry>
+        </collision>
+      </link>
+    </model>
+
+    <!-- ===================== Traffic signs =====================
+         Textured billboards (model://, resolved via IGN_GAZEBO_RESOURCE_PATH
+         pointing at robotcar_gazebo/models/signs). Placed roadside on the
+         robot's right (negative y), board facing back toward the approaching
+         robot (yaw=pi). Each sign cues the upcoming track feature so the VLM
+         can read it before the maneuver. -->
+
+    <!-- Left-curve warning: at the start, before the lane arcs left. -->
+    <include>
+      <name>sign_left</name>
+      <uri>model://sign_left</uri>
+      <pose>-4.0 -1.3 0 0 0 3.14159</pose>
+    </include>
+
+    <!-- Winding-road (S-curve) warning: just before the crest/reversal. -->
+    <include>
+      <name>sign_winding</name>
+      <uri>model://sign_winding</uri>
+      <pose>-1.0 -1.0 0 0 0 3.14159</pose>
+    </include>
+
+    <!-- Right-curve warning: after the crest, where the lane swings right. -->
+    <include>
+      <name>sign_right</name>
+      <uri>model://sign_right</uri>
+      <pose>2.0 -1.0 0 0 0 3.14159</pose>
+    </include>
+
+    <!-- Stop: ahead of the red goal cone (goal at 6.8,-0.7). -->
+    <include>
+      <name>sign_stop</name>
+      <uri>model://sign_stop</uri>
+      <pose>5.2 -1.7 0 0 0 3.14159</pose>
+    </include>
+
+  </world>
+</sdf>

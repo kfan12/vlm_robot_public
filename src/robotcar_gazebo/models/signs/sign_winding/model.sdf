@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<sdf version="1.7">
+  <model name="sign_winding">
+    <static>true</static>
+    <link name="link">
+
+      <!-- Support post -->
+      <visual name="post">
+        <pose>0 0 0.175 0 0 0</pose>
+        <geometry>
+          <cylinder>
+            <radius>0.02</radius>
+            <length>0.35</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>0.3 0.3 0.3 1</ambient>
+          <diffuse>0.4 0.4 0.4 1</diffuse>
+        </material>
+      </visual>
+
+      <!-- Textured board: a single-sided quad mesh (OBJ) -- the PNG maps to the
+           front face only; the back face is plain gray (unreadable from behind).
+           Texture is carried by the mesh material (meshes/sign.mtl -> map_Kd). -->
+      <visual name="board_face">
+        <pose>0 0 0.55 0 0 0</pose>
+        <geometry>
+          <mesh>
+            <uri>model://sign_winding/meshes/sign.obj</uri>
+          </mesh>
+        </geometry>
+      </visual>
+
+      <collision name="board_col">
+        <pose>0 0 0.55 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.02 0.45 0.45</size>
+          </box>
+        </geometry>
+      </collision>
+
+    </link>
+  </model>
+</sdf>

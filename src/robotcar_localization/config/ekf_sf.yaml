@@ -1,0 +1,24 @@
+# Hand-written C++ EKF (ekf_sf_node): fuses wheel-encoder forward speed
+# (/odom twist.linear.x) with IMU yaw + yaw-rate (/imu) into /odom_sf.
+# Runs ALONGSIDE the stock robot_localization node (ekf.yaml -> /odom_ekf).
+# publish_tf is false so it does NOT fight the stock EKF for odom->base_link.
+ekf_sf_node:
+  ros__parameters:
+    odom_frame: odom
+    base_link_frame: base_link
+    publish_tf: false
+
+    wheel_topic: /odom
+    imu_topic: /imu
+    output_topic: /odom_sf
+
+    # Process noise (per-second spectral densities; scaled by dt internally).
+    q_accel: 1.0        # forward-speed random walk  (m/s^2)^2
+    q_yaw_accel: 1.0    # yaw-rate random walk       (rad/s^2)^2
+    q_pos: 0.0001       # x,y jitter
+    q_theta: 0.0001     # heading jitter
+
+    # Measurement noise (variances).
+    r_wheel_v: 0.04     # wheel speed     (m/s)^2
+    r_imu_yaw: 0.01     # IMU yaw         (rad)^2
+    r_imu_yawrate: 0.0001  # IMU yaw-rate (rad/s)^2

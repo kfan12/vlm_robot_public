@@ -1,0 +1,21 @@
+# Python deps for the OPTIONAL VLM sign-reading extra (VLM_SIGN=1).
+# Install via scripts/setup/setup_vlm_venv.sh (torch comes separately from the
+# PyTorch CUDA index; it is not listed here).
+#
+# transformers must be 5.x: the code imports SmolVLMProcessor /
+# SmolVLMForConditionalGeneration and the Qwen2.5-VL classes as shipped in 5.x
+# (AutoProcessor/AutoModelForVision2Seq were removed).
+transformers>=5.0
+accelerate
+bitsandbytes          # 4-bit NF4 quantization for Qwen2.5-VL-3B on 6 GB VRAM
+sentencepiece
+protobuf
+opencv-python
+numpy>=2.0
+
+# Ubuntu 22.04 system-site-packages versions of these are too old for
+# transformers 5.x / NumPy 2 — force venv-local upgrades:
+scipy>=1.11
+pillow>=9.1
+jinja2>=3.1
+num2words

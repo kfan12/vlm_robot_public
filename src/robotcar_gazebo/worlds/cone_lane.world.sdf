@@ -1,0 +1,115 @@
+<?xml version="1.0"?>
+<sdf version="1.7">
+  <world name="cone_lane">
+
+    <physics type="ode">
+      <max_step_size>0.004</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+
+    <plugin filename="libignition-gazebo-physics-system.so"
+            name="ignition::gazebo::systems::Physics"/>
+    <plugin filename="libignition-gazebo-user-commands-system.so"
+            name="ignition::gazebo::systems::UserCommands"/>
+    <plugin filename="libignition-gazebo-scene-broadcaster-system.so"
+            name="ignition::gazebo::systems::SceneBroadcaster"/>
+    <plugin filename="libignition-gazebo-sensors-system.so"
+            name="ignition::gazebo::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+    <plugin filename="libignition-gazebo-imu-system.so"
+            name="ignition::gazebo::systems::Imu"/>
+
+    <!-- Scene-level ambient fill — prevents fully-black shadows -->
+    <scene>
+      <ambient>0.4 0.4 0.4 1</ambient>
+      <background>0.25 0.25 0.25 1</background>
+      <shadows>true</shadows>
+    </scene>
+
+    <!-- Directional sun -->
+    <light type="directional" name="sun">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>0.9 0.9 0.9 1</diffuse>
+      <specular>0.3 0.3 0.3 1</specular>
+      <attenuation>
+        <range>1000</range><constant>0.9</constant>
+        <linear>0.01</linear><quadratic>0.001</quadratic>
+      </attenuation>
+      <direction>-0.5 0.1 -0.9</direction>
+    </light>
+
+    <!-- Ground plane — light concrete grey -->
+    <model name="ground_plane">
+      <static>true</static>
+      <link name="link">
+        <collision name="collision">
+          <geometry><plane><normal>0 0 1</normal><size>100 100</size></plane></geometry>
+          <surface><friction><ode><mu>1.0</mu></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><plane><normal>0 0 1</normal><size>100 100</size></plane></geometry>
+          <material>
+            <ambient>0.55 0.55 0.55 1</ambient>
+            <diffuse>0.70 0.70 0.70 1</diffuse>
+            <specular>0.05 0.05 0.05 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Left yellow cone row (starts at x=4, clear of spawn at x=-3) -->
+    <model name="cone_L1"><static>true</static><pose>4.0  0.4 0.1 0 0 0</pose>
+      <link name="link">
+        <visual name="v"><geometry><cylinder><radius>0.05</radius><length>0.2</length></cylinder></geometry>
+          <material><ambient>0.9 0.8 0.0 1</ambient><diffuse>1.0 0.9 0.0 1</diffuse><specular>0.2 0.2 0.0 1</specular></material></visual>
+        <collision name="c"><geometry><cylinder><radius>0.05</radius><length>0.2</length></cylinder></geometry></collision>
+      </link></model>
+
+    <model name="cone_L2"><static>true</static><pose>5.0  0.4 0.1 0 0 0</pose>
+      <link name="link">
+        <visual name="v"><geometry><cylinder><radius>0.05</radius><length>0.2</length></cylinder></geometry>
+          <material><ambient>0.9 0.8 0.0 1</ambient><diffuse>1.0 0.9 0.0 1</diffuse><specular>0.2 0.2 0.0 1</specular></material></visual>
+        <collision name="c"><geometry><cylinder><radius>0.05</radius><length>0.2</length></cylinder></geometry></collision>
+      </link></model>
+
+    <model name="cone_L3"><static>true</static><pose>6.0  0.4 0.1 0 0 0</pose>
+      <link name="link">
+        <visual name="v"><geometry><cylinder><radius>0.05</radius><length>0.2</length></cylinder></geometry>
+          <material><ambient>0.9 0.8 0.0 1</ambient><diffuse>1.0 0.9 0.0 1</diffuse><specular>0.2 0.2 0.0 1</specular></material></visual>
+        <collision name="c"><geometry><cylinder><radius>0.05</radius><length>0.2</length></cylinder></geometry></collision>
+      </link></model>
+
+    <!-- Right yellow cone row -->
+    <model name="cone_R1"><static>true</static><pose>4.0 -0.4 0.1 0 0 0</pose>
+      <link name="link">
+        <visual name="v"><geometry><cylinder><radius>0.05</radius><length>0.2</length></cylinder></geometry>
+          <material><ambient>0.9 0.8 0.0 1</ambient><diffuse>1.0 0.9 0.0 1</diffuse><specular>0.2 0.2 0.0 1</specular></material></visual>
+        <collision name="c"><geometry><cylinder><radius>0.05</radius><length>0.2</length></cylinder></geometry></collision>
+      </link></model>
+
+    <model name="cone_R2"><static>true</static><pose>5.0 -0.4 0.1 0 0 0</pose>
+      <link name="link">
+        <visual name="v"><geometry><cylinder><radius>0.05</radius><length>0.2</length></cylinder></geometry>
+          <material><ambient>0.9 0.8 0.0 1</ambient><diffuse>1.0 0.9 0.0 1</diffuse><specular>0.2 0.2 0.0 1</specular></material></visual>
+        <collision name="c"><geometry><cylinder><radius>0.05</radius><length>0.2</length></cylinder></geometry></collision>
+      </link></model>
+
+    <model name="cone_R3"><static>true</static><pose>6.0 -0.4 0.1 0 0 0</pose>
+      <link name="link">
+        <visual name="v"><geometry><cylinder><radius>0.05</radius><length>0.2</length></cylinder></geometry>
+          <material><ambient>0.9 0.8 0.0 1</ambient><diffuse>1.0 0.9 0.0 1</diffuse><specular>0.2 0.2 0.0 1</specular></material></visual>
+        <collision name="c"><geometry><cylinder><radius>0.05</radius><length>0.2</length></cylinder></geometry></collision>
+      </link></model>
+
+    <!-- Red goal cone -->
+    <model name="cone_goal"><static>true</static><pose>7.0 0 0.125 0 0 0</pose>
+      <link name="link">
+        <visual name="v"><geometry><cylinder><radius>0.07</radius><length>0.25</length></cylinder></geometry>
+          <material><ambient>0.8 0.05 0.05 1</ambient><diffuse>0.95 0.1 0.1 1</diffuse><specular>0.3 0.05 0.05 1</specular></material></visual>
+        <collision name="c"><geometry><cylinder><radius>0.07</radius><length>0.25</length></cylinder></geometry></collision>
+      </link></model>
+
+  </world>
+</sdf>

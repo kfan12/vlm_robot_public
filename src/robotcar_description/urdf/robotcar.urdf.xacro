@@ -1,0 +1,328 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="robotcar">
+
+  <!-- ===================== PHYSICAL PARAMETERS ===================== -->
+  <xacro:property name="wheelbase"    value="0.32"/>
+  <xacro:property name="track_width"  value="0.22"/>
+  <xacro:property name="wheel_radius" value="0.05"/>
+  <xacro:property name="wheel_width"  value="0.03"/>
+
+  <!-- Chassis plate (lowest, longest element) -->
+  <xacro:property name="ch_l"    value="0.36"/>
+  <xacro:property name="ch_w"    value="0.18"/>
+  <xacro:property name="ch_h"    value="0.020"/>
+  <xacro:property name="ch_mass" value="4.5"/>
+
+  <!-- Body shell (on top of chassis plate) -->
+  <xacro:property name="body_l"  value="0.32"/>
+  <xacro:property name="body_w"  value="0.15"/>
+  <xacro:property name="body_h"  value="0.07"/>
+
+  <!-- Mass values -->
+  <xacro:property name="steer_mass" value="0.08"/>
+  <xacro:property name="wheel_mass" value="0.20"/>
+
+  <!-- ===================== INERTIA MACROS ===================== -->
+  <xacro:macro name="box_inertia" params="m x y z">
+    <inertial>
+      <mass value="${m}"/>
+      <inertia ixx="${m*(y*y+z*z)/12}" ixy="0" ixz="0"
+               iyy="${m*(x*x+z*z)/12}" iyz="0"
+               izz="${m*(x*x+y*y)/12}"/>
+    </inertial>
+  </xacro:macro>
+
+  <xacro:macro name="cyl_inertia" params="m r h">
+    <inertial>
+      <mass value="${m}"/>
+      <inertia ixx="${m*(3*r*r+h*h)/12}" ixy="0" ixz="0"
+               iyy="${m*(3*r*r+h*h)/12}" iyz="0"
+               izz="${m*r*r/2}"/>
+    </inertial>
+  </xacro:macro>
+
+  <!-- ===================== BASE LINK ===================== -->
+  <link name="base_link"/>
+
+  <!-- ===================== CHASSIS ===================== -->
+  <!-- Place chassis so wheels (at z=wheel_radius) sit on the ground -->
+  <joint name="chassis_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="chassis"/>
+    <origin xyz="0 0 ${wheel_radius + ch_h/2}" rpy="0 0 0"/>
+  </joint>
+
+  <link name="chassis">
+    <!-- Bottom chassis plate: flat, wide, dark gray -->
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><box size="${ch_l} ${ch_w} ${ch_h}"/></geometry>
+      <material name="anthracite"><color rgba="0.18 0.18 0.18 1.0"/></material>
+    </visual>
+
+    <!-- Body shell: sits on top of chassis plate -->
+    <visual>
+      <origin xyz="-0.01 0 ${ch_h/2 + body_h/2}" rpy="0 0 0"/>
+      <geometry><box size="${body_l} ${body_w} ${body_h}"/></geometry>
+      <material name="racing_red"><color rgba="0.82 0.10 0.10 1.0"/></material>
+    </visual>
+
+    <!-- Cab: smaller box at rear of body (driver cockpit area) -->
+    <visual>
+      <origin xyz="${-body_l/2 + 0.06} 0 ${ch_h/2 + body_h + 0.025}" rpy="0 0 0"/>
+      <geometry><box size="0.09 0.10 0.05"/></geometry>
+      <material name="anthracite"/>
+    </visual>
+
+    <!-- Front bumper: small bar at very front -->
+    <visual>
+      <origin xyz="${ch_l/2 - 0.015} 0 ${-ch_h/4}" rpy="0 0 0"/>
+      <geometry><box size="0.02 0.17 ${ch_h/2}"/></geometry>
+      <material name="anthracite"/>
+    </visual>
+
+    <!-- Use combined bounding box for collision -->
+    <collision>
+      <origin xyz="-0.01 0 ${ch_h/2 + body_h/2}" rpy="0 0 0"/>
+      <geometry><box size="${ch_l} ${ch_w} ${ch_h + body_h}"/></geometry>
+    </collision>
+
+    <xacro:box_inertia m="${ch_mass}" x="${ch_l}" y="${ch_w}" z="${ch_h + body_h}"/>
+  </link>
+
+  <!-- ===================== STEERING LINK MACRO ===================== -->
+  <!-- Creates a steering pivot (revolute Z) at the front axle.     -->
+  <!-- The wheel spin joint hangs off this link.                     -->
+  <xacro:macro name="steering_link" params="prefix x_off y_off">
+    <joint name="${prefix}_wheel_steering_joint" type="revolute">
+      <parent link="chassis"/>
+      <child link="${prefix}_wheel_steering_link"/>
+      <!-- z offset: put axle at wheel centre height relative to chassis centre -->
+      <origin xyz="${x_off} ${y_off} ${-ch_h/2}" rpy="0 0 0"/>
+      <axis xyz="0 0 1"/>
+      <limit lower="-0.55" upper="0.55" effort="10.0" velocity="1.5"/>
+      <dynamics damping="0.5"/>
+    </joint>
+
+    <link name="${prefix}_wheel_steering_link">
+      <!-- Thin king-pin cylinder (just for visual clarity) -->
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry><cylinder radius="0.006" length="0.025"/></geometry>
+        <material name="silver"><color rgba="0.75 0.75 0.75 1.0"/></material>
+      </visual>
+      <inertial>
+        <mass value="${steer_mass}"/>
+        <inertia ixx="0.00005" ixy="0" ixz="0"
+                 iyy="0.00005" iyz="0"
+                 izz="0.00005"/>
+      </inertial>
+    </link>
+  </xacro:macro>
+
+  <!-- ===================== WHEEL MACRO ===================== -->
+  <!-- Works for both steered (parent = steering_link) and         -->
+  <!-- non-steered (parent = chassis) wheels.                      -->
+  <xacro:macro name="wheel" params="name parent x_off y_off">
+    <joint name="${name}_joint" type="continuous">
+      <parent link="${parent}"/>
+      <child link="${name}"/>
+      <origin xyz="${x_off} ${y_off} 0" rpy="0 0 0"/>
+      <axis xyz="0 1 0"/>
+    </joint>
+
+    <link name="${name}">
+      <!-- Tyre -->
+      <visual>
+        <origin xyz="0 0 0" rpy="${pi/2} 0 0"/>
+        <geometry><cylinder radius="${wheel_radius}" length="${wheel_width}"/></geometry>
+        <material name="tyre"><color rgba="0.08 0.08 0.08 1.0"/></material>
+      </visual>
+      <!-- Hubcap disc (decorative) -->
+      <visual>
+        <origin xyz="0 ${wheel_width/2 + 0.001} 0" rpy="${pi/2} 0 0"/>
+        <geometry><cylinder radius="${wheel_radius * 0.55}" length="0.004"/></geometry>
+        <material name="hub_silver"><color rgba="0.65 0.65 0.65 1.0"/></material>
+      </visual>
+
+      <collision>
+        <origin xyz="0 0 0" rpy="${pi/2} 0 0"/>
+        <geometry><cylinder radius="${wheel_radius}" length="${wheel_width}"/></geometry>
+      </collision>
+      <xacro:cyl_inertia m="${wheel_mass}" r="${wheel_radius}" h="${wheel_width}"/>
+    </link>
+  </xacro:macro>
+
+  <!-- ===================== INSTANTIATE STEERING LINKS ===================== -->
+  <xacro:steering_link prefix="front_left"  x_off="${wheelbase/2}"  y_off="${track_width/2}"/>
+  <xacro:steering_link prefix="front_right" x_off="${wheelbase/2}"  y_off="${-track_width/2}"/>
+
+  <!-- ===================== FRONT STEERED WHEELS ===================== -->
+  <!-- Parent is the steering link; x_off/y_off = 0 (wheel at steering pivot) -->
+  <xacro:wheel name="front_left_wheel"
+               parent="front_left_wheel_steering_link"
+               x_off="0" y_off="0"/>
+  <xacro:wheel name="front_right_wheel"
+               parent="front_right_wheel_steering_link"
+               x_off="0" y_off="0"/>
+
+  <!-- ===================== REAR DRIVE WHEELS ===================== -->
+  <xacro:wheel name="rear_left_wheel"
+               parent="chassis"
+               x_off="${-wheelbase/2}" y_off="${track_width/2}"/>
+  <xacro:wheel name="rear_right_wheel"
+               parent="chassis"
+               x_off="${-wheelbase/2}" y_off="${-track_width/2}"/>
+
+  <!-- ===================== FRONT CAMERA ===================== -->
+  <joint name="front_camera_joint" type="fixed">
+    <parent link="chassis"/>
+    <child link="front_camera_link"/>
+    <!-- Mount above the body shell, at front. Pitched DOWN 0.10 rad (~5.7 deg)
+         so the ground is visible from ~0.5 m ahead of base_link instead of
+         ~0.6 m: with a level camera the near field was blind and the planned
+         path had no real near-lane information (the lane-follow controller then
+         held a parallel offset through turns — the drift/oscillation saga).
+         Trade-off: the top ray drops from +18 to +12.3 deg, so the 0.45 m sign
+         boards (top at z=0.78) are fully in view only beyond ~2.9 m and their
+         CENTRE beyond ~1.9 m — still inside the VLM arm window (2-3 m), and the
+         maneuver COMMIT at 1.5 m uses the odom-latched board position, not live
+         visibility. Don't pitch much past 0.12 rad or Qwen loses the boards. -->
+    <origin xyz="${ch_l/2 - 0.02} 0 ${ch_h/2 + body_h + 0.015}" rpy="0 0.10 0"/>
+  </joint>
+
+  <link name="front_camera_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><box size="0.025 0.055 0.025"/></geometry>
+      <material name="lens"><color rgba="0.05 0.05 0.05 1.0"/></material>
+    </visual>
+    <collision>
+      <geometry><box size="0.025 0.055 0.025"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="0.04"/>
+      <inertia ixx="0.00001" ixy="0" ixz="0"
+               iyy="0.00001" iyz="0"
+               izz="0.00001"/>
+    </inertial>
+  </link>
+
+  <!-- Camera optical frame: Z forward, X right, Y down (ROS camera convention) -->
+  <joint name="front_camera_optical_joint" type="fixed">
+    <parent link="front_camera_link"/>
+    <child link="front_camera_optical_frame"/>
+    <origin xyz="0 0 0" rpy="${-pi/2} 0 ${-pi/2}"/>
+  </joint>
+  <link name="front_camera_optical_frame"/>
+
+  <!-- ===================== GAZEBO: ACKERMANN STEERING PLUGIN ===================== -->
+  <gazebo>
+    <plugin filename="ignition-gazebo-ackermann-steering-system"
+            name="ignition::gazebo::systems::AckermannSteering">
+      <left_joint>rear_left_wheel_joint</left_joint>
+      <right_joint>rear_right_wheel_joint</right_joint>
+      <left_steering_joint>front_left_wheel_steering_joint</left_steering_joint>
+      <right_steering_joint>front_right_wheel_steering_joint</right_steering_joint>
+      <kingpin_width>${track_width}</kingpin_width>
+      <steering_limit>0.50</steering_limit>
+      <wheel_base>${wheelbase}</wheel_base>
+      <wheel_separation>${track_width}</wheel_separation>
+      <wheel_radius>${wheel_radius}</wheel_radius>
+      <min_velocity>-1.5</min_velocity>
+      <max_velocity>3.0</max_velocity>
+      <min_acceleration>-4.0</min_acceleration>
+      <max_acceleration>4.0</max_acceleration>
+      <odom_publish_frequency>50</odom_publish_frequency>
+      <frame_id>odom</frame_id>
+      <child_frame_id>base_link</child_frame_id>
+      <odom_topic>/model/robotcar/odometry</odom_topic>
+      <tf_topic>/model/robotcar/tf</tf_topic>
+    </plugin>
+  </gazebo>
+
+  <!-- ===================== IMU ===================== -->
+  <joint name="imu_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="imu_link"/>
+    <origin xyz="0 0 ${wheel_radius + ch_h/2}" rpy="0 0 0"/>
+  </joint>
+  <link name="imu_link">
+    <inertial>
+      <mass value="0.01"/>
+      <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6"/>
+    </inertial>
+  </link>
+
+  <!-- Noisy IMU sensor (MEMS-grade Gaussian noise on gyro + accel). -->
+  <gazebo reference="imu_link">
+    <sensor name="imu_sensor" type="imu">
+      <always_on>true</always_on>
+      <update_rate>100</update_rate>
+      <topic>imu</topic>
+      <ignition_frame_id>imu_link</ignition_frame_id>
+      <imu>
+        <angular_velocity>
+          <x><noise type="gaussian"><mean>0.0</mean><stddev>0.009</stddev><bias_mean>0.0</bias_mean><bias_stddev>0.0004</bias_stddev></noise></x>
+          <y><noise type="gaussian"><mean>0.0</mean><stddev>0.009</stddev><bias_mean>0.0</bias_mean><bias_stddev>0.0004</bias_stddev></noise></y>
+          <z><noise type="gaussian"><mean>0.0</mean><stddev>0.009</stddev><bias_mean>0.0</bias_mean><bias_stddev>0.0004</bias_stddev></noise></z>
+        </angular_velocity>
+        <linear_acceleration>
+          <x><noise type="gaussian"><mean>0.0</mean><stddev>0.08</stddev><bias_mean>0.0</bias_mean><bias_stddev>0.005</bias_stddev></noise></x>
+          <y><noise type="gaussian"><mean>0.0</mean><stddev>0.08</stddev><bias_mean>0.0</bias_mean><bias_stddev>0.005</bias_stddev></noise></y>
+          <z><noise type="gaussian"><mean>0.0</mean><stddev>0.08</stddev><bias_mean>0.0</bias_mean><bias_stddev>0.005</bias_stddev></noise></z>
+        </linear_acceleration>
+      </imu>
+    </sensor>
+  </gazebo>
+
+  <!-- ===================== GAZEBO: GROUND-TRUTH ODOMETRY ===================== -->
+  <!-- OdometryPublisher derives odometry from the model's ACTUAL world pose
+       (not wheel encoders), so it does not drift. Used to draw/visualize the
+       path against ground truth; the AckermannSteering /odom above stays the
+       realistic (drifting) source the controller localizes in. -->
+  <gazebo>
+    <plugin filename="ignition-gazebo-odometry-publisher-system"
+            name="ignition::gazebo::systems::OdometryPublisher">
+      <dimensions>2</dimensions>
+      <odom_frame>odom</odom_frame>
+      <robot_base_frame>base_link</robot_base_frame>
+      <odom_publish_frequency>50</odom_publish_frequency>
+      <odom_topic>/model/robotcar/odometry_truth</odom_topic>
+      <tf_topic>/model/robotcar/tf_truth</tf_topic>
+    </plugin>
+  </gazebo>
+
+  <!-- ===================== GAZEBO: RGB-D CAMERA SENSOR ===================== -->
+  <gazebo reference="front_camera_link">
+    <sensor name="front_camera" type="rgbd_camera">
+      <always_on>true</always_on>
+      <update_rate>10</update_rate>
+      <camera>
+        <horizontal_fov>1.047</horizontal_fov>
+        <image>
+          <width>640</width>
+          <height>360</height>
+          <format>R8G8B8</format>
+        </image>
+        <clip><near>0.08</near><far>15.0</far></clip>
+        <depth_camera><output>depths</output></depth_camera>
+      </camera>
+      <topic>camera/front</topic>
+      <ignition_frame_id>front_camera_optical_frame</ignition_frame_id>
+    </sensor>
+  </gazebo>
+
+  <!-- ===================== GAZEBO: JOINT STATE PUBLISHER ===================== -->
+  <!-- Publishes joint states so robot_state_publisher can compute FK/TF -->
+  <gazebo>
+    <plugin filename="ignition-gazebo-joint-state-publisher-system"
+            name="ignition::gazebo::systems::JointStatePublisher"/>
+  </gazebo>
+
+  <!-- Gazebo material overrides -->
+  <gazebo reference="chassis">
+    <material>Gazebo/DarkGrey</material>
+  </gazebo>
+
+</robot>

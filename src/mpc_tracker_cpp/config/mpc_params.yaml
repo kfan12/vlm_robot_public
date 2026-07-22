@@ -1,0 +1,83 @@
+mpc_tracker:
+  ros__parameters:
+    control_rate_hz: 30.0
+    horizon_steps: 15
+    dt: 0.1
+    wheelbase_m: 0.32
+    # STARTUP DEFAULT / fallback speed only. At runtime the maneuver state machine
+    # (planner) publishes /maneuver/target_speed (Float64) and this is OVERRIDDEN per
+    # maneuver regime (straight/turn/winding/stop) — params are read once at startup
+    # (KB §2.16), so the override must be a topic, not a param. Keep this >= the map's
+    # 'straight' speed so the no-setpoint fail-safe holds the intended cruising speed.
+    target_speed_mps: 0.8
+    max_speed_mps: 1.5
+    min_speed_mps: 0.0
+    max_accel_mps2: 1.2
+    max_decel_mps2: -1.8
+    max_steer_rad: 0.5
+    max_steer_rate_radps: 1.5
+
+    weight_lateral_error: 5.0
+    # Heading gain k_head = weight_heading_error / weight_steer. Was 5.0/1.0 = 5,
+    # at which ~0.1 rad of heading error already saturates max_steer (0.5 rad), so
+    # near-end reference noise drives a steering limit cycle. Lowered to 2.0 (k_head
+    # = 2) to slow the loop below the ~0.2 s path/command lag. A/B: restore 5.0 (with
+    # heading_lookahead_m: 0.0) to reproduce the original wobble.
+    weight_heading_error: 5.0
+    # weight_speed_error/weight_accel/weight_accel_rate: the 0453cd5 steering-oscillation
+    # tune (1.0/0.2/0.4 -> 0.5/2.0/6.0) collapsed k_speed = weight_speed_error/weight_accel
+    # from 5.0 to 0.25 (20x), over-damping the accel channel so actual speed oscillated
+    # 0.5-0.85 m/s even at a flat-held target instead of settling. Rebalanced back toward
+    # pre-0453cd5 ratios (k_speed ~1.3) while keeping some extra accel-rate damping.
+    weight_speed_error: 0.5
+    weight_accel: 0.75
+    weight_steer: 1.5
+    weight_accel_rate: 5.0
+    weight_steer_rate: 5.0
+
+    # Heading-reference lookahead [m] (pure-pursuit style): bearing to a point this
+    # far ahead on the path instead of the noisy local foot-point tangent. 0.0
+    # restores the local tangent. Toggle this and weight_heading_error one at a time
+    # to separate the two fixes (lookahead attacks the noisy reference; the gain
+    # attacks the loop-lag limit cycle).
+    # STARTUP default / fallback only (planner dead or /maneuver/state stale).
+    heading_lookahead_m: 0.3
+    # Maneuver-dependent lookahead, selected at runtime by the planner's maneuver
+    # FSM state on maneuver_state_topic (applied while fresh within
+    # speed_setpoint_timeout_sec, same fail-safe pattern as the speed setpoint;
+    # stale -> hold current). The chord to the lookahead point cuts INSIDE curves
+    # by ~L^2/2R, so turns want it SHORT; straights want it LONG to average path
+    # noise out of the heading reference. 'stop' rides the turn value (slow,
+    # short halt path).
+    heading_lookahead_straight_m: 2.0
+    heading_lookahead_turn_m: 0.3
+    heading_lookahead_winding_m: 0.5
+    maneuver_state_topic: "/maneuver/state"
+
+    # Runtime speed setpoint from the planner's maneuver FSM. A value on this topic
+    # overrides target_speed_mps while FRESH; after speed_setpoint_timeout_sec with no
+    # message the solver holds its current target (fail-safe — never accelerate on a
+    # lost/stale read; a dead planner leaves the last commanded speed, <= cruising).
+    target_speed_topic: "/maneuver/target_speed"
+    speed_setpoint_timeout_sec: 1.0
+
+    # Slew-rate limits on the injected target speed (v_ref): a maneuver regime switch
+    # ramps v_ref instead of stepping it, keeping the QP's linearization speed near the
+    # actual speed (the dynamics coupling is linearized around current speed). Asymmetric
+    # ON PURPOSE — accel slow (smooths turn->straight speed-up), decel fast so a
+    # stop/slow-down setpoint is never rate-limited into a safety problem.
+    # accel_rate raised 0.5->1.0: at 0.5 the ramp from a turn's 0.6 setpoint to straight's
+    # 1.2 needed 1.2s, longer than some straight-target pulses (as short as 1.0s), so the
+    # setpoint got pulled back down before the vehicle ever reached it (confirmed via
+    # target_speed.csv/speed_tracking.png on 2026-07-09). This param only feeds the v_ref
+    # slew (mpc_tracker_node.cpp), decoupled from the steering weights above.
+    target_speed_accel_rate_mps2: 0.020
+    target_speed_decel_rate_mps2: 0.020
+
+    path_timeout_sec: 2.0
+    stop_if_no_path: true
+    closest_point_search_radius_m: 2.0
+    command_topic: "/cmd_vel"
+    odom_topic: "/odom_ekf"
+    path_topic: "/vlm_path_odom"
+    reference_path_topic: "/mpc_reference_path"
