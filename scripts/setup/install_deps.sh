@@ -32,15 +32,18 @@ fi
 
 echo "==> Base tools"
 $SUDO apt-get update
+$SUDO apt-get install -y -f
 $SUDO apt-get install -y build-essential cmake pkg-config git curl wget gnupg lsb-release ca-certificates
 
 # ---------------------------------------------------------------------------
 echo "==> ROS 2 Humble apt repository"
-if [ ! -f /usr/share/keyrings/ros-archive-keyring.gpg ]; then
-    $SUDO curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key \
-        -o /usr/share/keyrings/ros-archive-keyring.gpg
-fi
-if [ ! -f /etc/apt/sources.list.d/ros2.list ]; then
+if grep -Rq "packages\.ros\.org" /etc/apt/sources.list /etc/apt/sources.list.d/ 2>/dev/null; then
+    echo "    ROS 2 apt repository already configured elsewhere — skipping"
+else
+    if [ ! -f /usr/share/keyrings/ros-archive-keyring.gpg ]; then
+        $SUDO curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key \
+            -o /usr/share/keyrings/ros-archive-keyring.gpg
+    fi
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo "$UBUNTU_CODENAME") main" \
         | $SUDO tee /etc/apt/sources.list.d/ros2.list > /dev/null
     $SUDO apt-get update
@@ -62,11 +65,13 @@ $SUDO apt-get install -y \
 
 # ---------------------------------------------------------------------------
 echo "==> Gazebo Fortress (Ignition) + ros_gz bridge"
-if [ ! -f /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg ]; then
-    $SUDO curl -sSL https://packages.osrfoundation.org/gazebo.gpg \
-        -o /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg
-fi
-if [ ! -f /etc/apt/sources.list.d/gazebo-stable.list ]; then
+if grep -Rq "packages\.osrfoundation\.org" /etc/apt/sources.list /etc/apt/sources.list.d/ 2>/dev/null; then
+    echo "    Gazebo apt repository already configured elsewhere — skipping"
+else
+    if [ ! -f /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg ]; then
+        $SUDO curl -sSL https://packages.osrfoundation.org/gazebo.gpg \
+            -o /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg
+    fi
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] http://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" \
         | $SUDO tee /etc/apt/sources.list.d/gazebo-stable.list > /dev/null
     $SUDO apt-get update
