@@ -215,6 +215,11 @@ vlm_planner:
     speed_turn: 0.6
     speed_winding: 0.6
     speed_stop: 0.0
+    # Cruise used before the VLM sign node has ever been heard from at all (no
+    # /vlm/sign message received yet -> self._sign_seen still False), as opposed to
+    # speed_straight which applies once the VLM is up and simply reading 'none'.
+    # Kept conservative since the maneuver FSM has zero semantic input in this case.
+    speed_no_vlm: 0.5
     target_speed_topic: "/maneuver/target_speed"
 
 # ---------------------------------------------------------------------------

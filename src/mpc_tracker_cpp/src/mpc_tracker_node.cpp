@@ -39,6 +39,10 @@ public:
         look_straight_ = declare_parameter("heading_lookahead_straight_m", look_m);
         look_turn_ = declare_parameter("heading_lookahead_turn_m", look_m);
         look_winding_ = declare_parameter("heading_lookahead_winding_m", look_m);
+        // Published as maneuver_state_ == "no_vlm" before the planner has ever seen a
+        // VLM sign read (see vlm_node._publish_target_speed) — distinct from "straight"
+        // so a conservative lookahead can be chosen with no semantic input at all.
+        look_no_vlm_ = declare_parameter("heading_lookahead_no_vlm_m", 0.5);
         path_timeout_ = declare_parameter("path_timeout_sec", 2.0);
         stop_no_path_ = declare_parameter("stop_if_no_path", true);
         search_radius_ = declare_parameter("closest_point_search_radius_m", 2.0);
@@ -180,7 +184,7 @@ private:
     bool got_state_ = false;
     std::string maneuver_state_;
     rclcpp::Time maneuver_state_time_{0, 0, RCL_ROS_TIME};
-    double look_straight_ = 0.6, look_turn_ = 0.6, look_winding_ = 0.6;
+    double look_straight_ = 0.6, look_turn_ = 0.6, look_winding_ = 0.6, look_no_vlm_ = 0.5;
 
     nav_msgs::msg::Path::SharedPtr path_;
     nav_msgs::msg::Odometry::SharedPtr odom_;
@@ -331,6 +335,8 @@ private:
                 look = look_turn_;
             else if (maneuver_state_ == "winding")
                 look = look_winding_;
+            else if (maneuver_state_ == "no_vlm")
+                look = look_no_vlm_;
             solver_->set_lookahead(look);
         }
 

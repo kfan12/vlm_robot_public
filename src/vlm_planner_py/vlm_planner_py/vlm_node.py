@@ -209,6 +209,11 @@ class VlmPlannerNode(Node):
         self.speed_turn = cast(float, self.declare_parameter('speed_turn', 0.5).value)
         self.speed_winding = cast(float, self.declare_parameter('speed_winding', 0.4).value)
         self.speed_stop = cast(float, self.declare_parameter('speed_stop', 0.0).value)
+        # Conservative cruise used before the VLM sign node has ever been heard from
+        # (self._sign_seen still False -> no /vlm/sign message received yet, so the
+        # maneuver FSM has no semantic input at all). Distinct from speed_straight,
+        # which is the cruise once the VLM is up and simply reading 'none'.
+        self.speed_no_vlm = cast(float, self.declare_parameter('speed_no_vlm', 0.6).value)
         self.target_speed_topic = cast(str, self.declare_parameter('target_speed_topic', '/maneuver/target_speed').value)
         # Raw maneuver state topic (String): consumed by the MPC for its
         # maneuver-dependent heading lookahead (and handy for debugging).
@@ -523,7 +528,11 @@ class VlmPlannerNode(Node):
     def _maneuver_target_speed(self):
         """Map the committed maneuver state to a target speed [m/s]. left/right -> the
         turn speed; winding -> the (slower) winding speed; stop -> 0; straight/default ->
-        the straight cruising speed."""
+        the straight cruising speed. Before the VLM has ever produced a sign read
+        (self._sign_seen False), the maneuver FSM has no semantic input at all, so
+        cruise at the more conservative speed_no_vlm instead of speed_straight."""
+        if not self._sign_seen:
+            return self.speed_no_vlm
         return {
             'left': self.speed_turn,
             'right': self.speed_turn,
@@ -537,9 +546,13 @@ class VlmPlannerNode(Node):
         checks always see live values at planner rate; if the planner dies the MPC
         falls back to its own defaults and never accelerates (fail-safe invariant).
         The state feeds the MPC's maneuver-dependent heading lookahead
-        (heading_lookahead_straight/turn/winding_m in mpc_params.yaml)."""
+        (heading_lookahead_straight/turn/winding_m in mpc_params.yaml). Before the VLM
+        has ever produced a sign read, the published state is the synthetic 'no_vlm'
+        rather than the FSM's internal 'straight', so the MPC can select its own
+        heading_lookahead_no_vlm_m instead of heading_lookahead_straight_m."""
         self.speed_pub.publish(Float64(data=float(self._maneuver_target_speed())))
-        self.state_pub.publish(String(data=self.maneuver_sm.state))
+        state = self.maneuver_sm.state if self._sign_seen else 'no_vlm'
+        self.state_pub.publish(String(data=state))
 
     def plan_once(self):
         # Optional cross-node startup gate: withhold the DRIVING outputs (path +

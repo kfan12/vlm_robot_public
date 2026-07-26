@@ -52,6 +52,10 @@ mpc_tracker:
     heading_lookahead_straight_m: 2.0
     heading_lookahead_turn_m: 0.3
     heading_lookahead_winding_m: 0.5
+    # Published as state "no_vlm" before the planner has ever seen a VLM sign read
+    # (distinct from "straight", which only applies once the VLM is up and reading
+    # 'none'). Conservative/short since there is no semantic input at all yet.
+    heading_lookahead_no_vlm_m: 0.5
     maneuver_state_topic: "/maneuver/state"
 
     # Runtime speed setpoint from the planner's maneuver FSM. A value on this topic
