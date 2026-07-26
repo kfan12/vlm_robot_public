@@ -1,9 +1,6 @@
 vlm_planner:
   ros__parameters: 
-    mode: "opencv"  # Options: "vlm", "fake_path", "opencv"
-    model_name: "HuggingFaceTB/SmolVLM2-500M-Video-Instruct"
-    device: "cuda"
-    torch_dtype: "float16"
+    mode: "opencv"  # Options: "fake_path", "opencv"
     # OpenCV planner loop rate. In "opencv" mode this is the ONLY planning loop,
     # so run it fast for tight lane tracking. (When VLM is added later, give the
     # VLM its OWN slow timer rather than lowering this — the loops are separate.)

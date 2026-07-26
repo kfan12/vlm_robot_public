@@ -186,7 +186,7 @@ First run downloads Qwen2.5-VL-3B-Instruct (~3 GB) into `~/.cache/huggingface`.
 Known constraints (already handled by the code — listed so you don't "fix" them):
 
 - **transformers must be 5.x** — the code uses the 5.x class names
-  (`SmolVLMProcessor` etc.); `AutoProcessor`/`AutoModelForVision2Seq` were removed upstream.
+  (`Qwen2_5_VLForConditionalGeneration` etc.); `AutoModelForVision2Seq` was removed upstream.
 - **The venv's NumPy 2 breaks ROS `cv_bridge`** (compiled against NumPy 1.x).
   The VLM nodes are deliberately cv_bridge-free (raw numpy image conversion);
   don't route their images through cv_bridge.

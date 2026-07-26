@@ -1,97 +1,7 @@
 import torch
 
-from transformers import SmolVLMProcessor, SmolVLMForConditionalGeneration
 from PIL import Image
-import numpy as np
 import time
-
-_model = None
-_processor = None
-
-
-def load_vlm_model(model_name: str, device: str = 'cuda', torch_dtype: str = 'float16',
-                   do_image_splitting: bool = False):
-    global _model, _processor
-    if _model is not None:
-        print(f"Model already loaded: {model_name} on device: {device} with dtype: {torch_dtype}")
-        return _model, _processor
-
-    dtype = torch.float16 if torch_dtype == 'float16' else torch.float32
-
-    print(f"Loading VLM model: {model_name} on device: {device} with dtype: {dtype}")
-    _processor = SmolVLMProcessor.from_pretrained(model_name) 
-    # SmolVLM tiles each image into several sub-images by default, which multiplies
-    # the vision tokens and dominates the prefill latency. For our simple scene
-    # (a few large cones) disabling the split is a big speedup at little accuracy
-    # cost. Set on the underlying image processor (robust across transformers vers).
-    try:
-        _processor.image_processor.do_image_splitting = do_image_splitting
-        print(f"do_image_splitting set to {do_image_splitting}")
-    except AttributeError:
-        print("WARNING: could not set do_image_splitting on processor.image_processor")
-    _model = SmolVLMForConditionalGeneration.from_pretrained(
-        model_name,
-        torch_dtype=dtype,
-        device_map=device,
-        attn_implementation="sdpa",  # scaled-dot-product attn; faster than eager
-    )
-
-    _model.eval()
-
-    print(f"Model loaded successfully: {model_name} on device: {device} with dtype: {dtype}")
-    print(f"VRAM used: {torch.cuda.memory_allocated(device) / 1e9:.2f} GB")
-
-    return _model, _processor
-
-
-
-def run_vlm_inference(
-    model,
-    processor,
-    image_pil: Image.Image,
-    prompt_text: str,
-    max_new_tokens: int = 256,
-):
-    """
-    Run a single VLM inference.
-    Returns the decoded response string.
-    """
-    messages = [
-        {
-            "role": "user",
-            "content": [
-                {"type": "image"},
-                {"type": "text", "text": prompt_text},
-            ],
-        }
-    ]
-
-    formatted = processor.apply_chat_template(messages, add_generation_prompt=True)
-    inputs = processor(
-        text=formatted,
-        images=[image_pil],
-        return_tensors="pt",
-    ).to(model.device)
-
-    t0 = time.time()
-    with torch.no_grad():
-        output_ids = model.generate(
-            **inputs,
-            max_new_tokens=max_new_tokens,
-            do_sample=False,
-        )
-    elapsed = time.time() - t0
-
-    # Decode only the newly generated tokens
-    input_len = inputs['input_ids'].shape[1]
-    n_generated = output_ids.shape[1] - input_len
-    # Diagnostic: input_len includes the (many) image tokens — if it is large, the
-    # prefill dominates; if n_generated ~= max_new_tokens, the decode does (no EOS).
-    print(f"[infer] {input_len} input tokens (incl image), {n_generated} generated, "
-          f"{elapsed:.2f}s ({elapsed / max(1, n_generated) * 1000:.0f} ms/tok)")
-    response = processor.decode(output_ids[0][input_len:], skip_special_tokens=True)
-    return response, elapsed
-
 
 
 def cv2_to_pil(bgr_img):
@@ -104,8 +14,7 @@ def cv2_to_pil(bgr_img):
 # --- Qwen2.5-VL-3B (4-bit) — symbolic sign reading -------------------------
 # The sign-class task needs Qwen, not SmolVLM (memory: "Qwen reads symbolic
 # signs", "SmolVLM inadequate for geometry"; validated offline in
-# scripts/probe_signs_world.py). Kept separate from the SmolVLM loader above so
-# both can coexist; lazy-loaded on the first VLM tick.
+# scripts/probe_signs_world.py). Lazy-loaded on the first VLM tick.
 _qwen_model = None
 _qwen_processor = None
 _QWEN_DEFAULT = "Qwen/Qwen2.5-VL-3B-Instruct"
