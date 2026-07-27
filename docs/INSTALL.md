@@ -1,16 +1,14 @@
 # Installation Guide
 
-Everything needed to run the simulation demo, from a fresh machine to the car
-driving itself. The fast path is the install script; the manual steps below it
-do exactly the same things, for auditing or picking pieces individually.
+Everything needed to run the simulation demo, from a fresh machine to the car driving itself.
+The fast path is the install script; the manual steps below it do exactly the same things, for auditing or picking pieces individually.
 
-**Target platform: Ubuntu 22.04** — either native, or **WSL2 on Windows 11**
-(the setup this project was built on). ROS 2 Humble and Gazebo Fortress are
-tied to 22.04; newer Ubuntu releases will not work with these versions.
+**Target platform: Ubuntu 22.04** - either native, or **WSL2 on Windows 11** (the setup this project was built on).
+ROS 2 Humble and Gazebo Fortress are tied to 22.04; newer Ubuntu releases will not work with these versions.
 
 ---
 
-## 0. WSL2 preparation (Windows only — skip on native Ubuntu)
+## 0. WSL2 preparation (Windows only - skip on native Ubuntu)
 
 ```powershell
 # In a Windows terminal:
@@ -28,13 +26,12 @@ swap=8GB
 guiApplications=true
 ```
 
-Gazebo and RViz windows are displayed through **WSLg** (built into Windows 11) —
-no X server setup needed. The demo launcher opens its window via **Windows
-Terminal** (`wt.exe`), which Windows 11 ships by default.
+Gazebo and RViz windows are displayed through **WSLg** (built into Windows 11) - no X server setup needed.
+The demo launcher opens its window via **Windows Terminal** (`wt.exe`), which Windows 11 ships by default.
 
 ---
 
-## 1. Fast path — the install script
+## 1. Fast path - the install script
 
 ```bash
 git clone https://github.com/kfan12/vlm_robot_public.git vlm_robot_demo   # any directory name works
@@ -42,10 +39,7 @@ cd vlm_robot_demo
 ./scripts/setup/install_deps.sh
 ```
 
-The script is idempotent (safe to re-run) and installs: ROS 2 Humble desktop,
-the ROS packages the demo uses, Gazebo Fortress + the `ros_gz` bridge, `tmux`,
-Eigen, the Python runtime deps, and **OSQP + osqp-eigen built from source into
-`/usr/local`** (there is no `libosqp-dev` package in Ubuntu 22.04).
+The script is idempotent (safe to re-run) and installs: ROS 2 Humble desktop, the ROS packages the demo uses, Gazebo Fortress + the `ros_gz` bridge, `tmux`, Eigen, the Python runtime deps, and **OSQP + osqp-eigen built from source into `/usr/local`** (there is no `libosqp-dev` package in Ubuntu 22.04).
 
 Then go to [§3 Environment & build](#3-environment--build).
 
@@ -95,9 +89,7 @@ sudo apt install -y tmux libeigen3-dev python3-opencv python3-numpy python3-tran
 
 ### 2.4 OSQP + osqp-eigen (from source)
 
-The MPC links against [OSQP](https://osqp.org) and
-[osqp-eigen](https://github.com/robotology/osqp-eigen); neither is packaged
-for Ubuntu 22.04, so both are built into `/usr/local`:
+The MPC links against [OSQP](https://osqp.org) and [osqp-eigen](https://github.com/robotology/osqp-eigen); neither is packaged for Ubuntu 22.04, so both are built into `/usr/local`:
 
 ```bash
 git clone --recursive --depth 1 https://github.com/osqp/osqp
@@ -112,8 +104,7 @@ sudo ldconfig
 ```
 
 Verify: `/usr/local/lib/cmake/OsqpEigen/OsqpEigenConfig.cmake` exists.
-(`mpc_tracker_cpp/CMakeLists.txt` already points `OsqpEigen_DIR` there —
-colcon does not search `/usr/local` on its own.)
+(`mpc_tracker_cpp/CMakeLists.txt` already points `OsqpEigen_DIR` there - colcon does not search `/usr/local` on its own.)
 
 ---
 
@@ -143,37 +134,30 @@ Expected: 8 packages build with no errors (warnings are OK).
 ./scripts/start_path_demo.sh
 ```
 
-- A new terminal window opens showing a 4×2 tmux grid; each pane starts one
-  component on a staggered delay (Gazebo first, planner last at ~40 s).
-- The Gazebo window shows the car on a marked track; RViz shows the planned
-  path, odometry trails, and the FPV camera with detection overlay.
+- A new terminal window opens showing a 4×2 tmux grid; each pane starts one component on a staggered delay (Gazebo first, planner last at ~40 s).
+- The Gazebo window shows the car on a marked track; RViz shows the planned path, odometry trails, and the FPV camera with detection overlay.
 - After ~40 s the car drives off and follows the lane.
 - **Shutdown:** close the demo window, or `tmux kill-session -t vlm_robot_demo`.
 
-If anything fails to appear, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md) —
-the two most common issues are a missing `LIBGL_ALWAYS_SOFTWARE=1` and an
-unbuilt workspace.
+If anything fails to appear, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - the two most common issues are a missing `LIBGL_ALWAYS_SOFTWARE=1` and an unbuilt workspace.
 
 ---
 
 ## 5. Optional: the VLM sign reader (`VLM_SIGN=1`)
 
-The default demo needs none of this. With the VLM extra, a **Qwen2.5-VL-3B**
-model (4-bit quantized) reads the roadside signs live and the car reacts:
-slows into turns and the winding section, stops at the STOP sign.
+The default demo needs none of this.
+With the VLM extra, a **Qwen2.5-VL-3B** model (4-bit quantized) reads the roadside signs live and the car reacts: slows into turns and the winding section, stops at the STOP sign.
 
 **Hardware:** NVIDIA GPU with **~6 GB VRAM** (tested on an RTX 3060 Laptop).
-On WSL2, install only the **Windows** NVIDIA driver — never a Linux display
-driver inside WSL. The CUDA runtime for PyTorch ships with the pip wheels.
+On WSL2, install only the **Windows** NVIDIA driver - never a Linux display driver inside WSL.
+The CUDA runtime for PyTorch ships with the pip wheels.
 
 ```bash
 ./scripts/setup/setup_vlm_venv.sh
 ```
 
-This creates `~/venvs/vlm_robot` (with `--system-site-packages` so ROS's
-`rclpy` stays importable) and installs PyTorch (CUDA 12.1 wheels),
-transformers 5.x, and bitsandbytes. Details and version constraints live in
-`scripts/setup/requirements-vlm.txt`.
+This creates `~/venvs/vlm_robot` (with `--system-site-packages` so ROS's `rclpy` stays importable) and installs PyTorch (CUDA 12.1 wheels), transformers 5.x, and bitsandbytes.
+Details and version constraints live in `scripts/setup/requirements-vlm.txt`.
 
 Run:
 
@@ -183,13 +167,10 @@ VLM_SIGN=1 ./scripts/start_path_demo.sh
 
 First run downloads Qwen2.5-VL-3B-Instruct (~3 GB) into `~/.cache/huggingface`.
 
-Known constraints (already handled by the code — listed so you don't "fix" them):
+Known constraints (already handled by the code - listed so you don't "fix" them):
 
-- **transformers must be 5.x** — the code uses the 5.x class names
-  (`Qwen2_5_VLForConditionalGeneration` etc.); `AutoModelForVision2Seq` was removed upstream.
+- **transformers must be 5.x** - the code uses the 5.x class names (`Qwen2_5_VLForConditionalGeneration` etc.); `AutoModelForVision2Seq` was removed upstream.
 - **The venv's NumPy 2 breaks ROS `cv_bridge`** (compiled against NumPy 1.x).
-  The VLM nodes are deliberately cv_bridge-free (raw numpy image conversion);
-  don't route their images through cv_bridge.
-- The sign node is launched with the **venv python via `python3 -m`**, not
-  `ros2 run` (whose console-script shebang is the system python → no torch).
+  The VLM nodes are deliberately cv_bridge-free (raw numpy image conversion); don't route their images through cv_bridge.
+- The sign node is launched with the **venv python via `python3 -m`**, not `ros2 run` (whose console-script shebang is the system python → no torch).
   The demo script does this for you.
