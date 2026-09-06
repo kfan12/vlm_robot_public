@@ -28,6 +28,9 @@ Under the hood, the car runs a compact version of a real autonomous-driving stac
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full node graph.
 
+The stack ships with a headless validation and tuning toolchain (`tools/debugkit/`) that records a run's ROS topics and turns them into a metrics report - XY trajectory, odometry drift vs. ground truth, lateral oscillation, speed tracking, and cross-track error - so a change can be checked quantitatively rather than by eye; see [Recording & analysis](#recording--analysis).
+The design rationale, the VLM geometry-vs-symbols finding, the MPC formulation, and the quantitative validation results are written up in [docs/technical_report.md](docs/technical_report.md).
+
 A continuation project, **[vlm_av_ws](https://github.com/kfan12/vlm_av_ws)**, carries this same approach onto a full-size sedan model with a more realistic generated urban road world.
 It is still under active development.
 
