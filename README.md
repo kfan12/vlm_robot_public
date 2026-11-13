@@ -38,6 +38,11 @@ It is still under active development.
 |:---:|:---:|
 | <img src="docs/images/vlm_av_ws_gazebo.png" alt="Gazebo: vlm_av_ws sedan on the urban course" width="100%"> | <img src="docs/images/vlm_av_ws_rviz.png" alt="RViz: vlm_av_ws lane debug image and planned path" width="100%"> |
 
+
+| ACC & AEB - vlm_av_ws |
+|:---:|
+| <img src="docs/images/ACC_Lidar.png" alt="Gazebo: vlm_av_ws sedan on the urban course" width="100%"> |
+
 ## Tech stack
 
 | Layer | Technology |
